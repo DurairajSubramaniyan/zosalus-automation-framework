@@ -1,0 +1,34 @@
+{
+  "name": "zosalus-automation-framework",
+  "version": "1.0.0",
+  "description": "Playwright JavaScript BDD Test Automation Framework for Zosalus",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx bddgen && npx playwright test",
+    "test:bdd": "npx bddgen && npx playwright test",
+    "test:headed": "npx bddgen && npx playwright test --headed",
+    "test:login": "npx bddgen && npx playwright test features/login.feature --headed",
+    "test:signup": "npx bddgen && npx playwright test features/signup.feature --headed",
+    "test:fp": "npx bddgen && npx playwright test features/forgotPassword.feature --headed",
+    "test:ui": "npx bddgen && npx playwright test --ui",
+    "test:debug": "npx bddgen && npx playwright test --debug",
+    "test:report": "npx playwright show-report"
+  },
+  "keywords": [
+    "playwright",
+    "automation",
+    "javascript",
+    "cucumber",
+    "bdd",
+    "testing",
+    "zosalus"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^22.13.14",
+    "dotenv": "^16.4.7",
+    "playwright-bdd": "^7.8.2"
+  }
+}
