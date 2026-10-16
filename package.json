@@ -10,6 +10,7 @@
     "test:login": "npx bddgen && npx playwright test features/login.feature --headed",
     "test:signup": "npx bddgen && npx playwright test features/signup.feature --headed",
     "test:fp": "npx bddgen && npx playwright test features/forgotPassword.feature --headed",
+    "test:setup": "npx bddgen && npx playwright test features/accountSetup.feature --headed",
     "test:ui": "npx bddgen && npx playwright test --ui",
     "test:debug": "npx bddgen && npx playwright test --debug",
     "test:report": "npx playwright show-report"

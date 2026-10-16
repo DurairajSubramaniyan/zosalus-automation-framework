@@ -3,6 +3,7 @@ import { BddTestFixtures, BddWorkerFixtures } from 'playwright-bdd';
 import SignupPage from '../pages/SignupPage';
 import LoginPage from '../pages/LoginPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import AccountSetupPage from '../pages/AccountSetupPage';
 import BasePage from '../pages/BasePage';
 
 export interface CustomFixtures {
@@ -10,6 +11,7 @@ export interface CustomFixtures {
   signupPage: SignupPage;
   loginPage: LoginPage;
   forgotPasswordPage: ForgotPasswordPage;
+  accountSetupPage: AccountSetupPage;
 }
 
 export type CustomTestArgs = PlaywrightTestArgs & PlaywrightTestOptions & BddTestFixtures & CustomFixtures;
