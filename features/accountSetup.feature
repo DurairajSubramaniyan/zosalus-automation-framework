@@ -73,6 +73,31 @@ Feature: Zosalus Account Creation, Login, and Profile Setup Flow
     Then the setup "Add Contact" button should be visible
     And the setup "Add an emergency contact" button should be visible
 
+  @positive @persistence
+  Scenario: TC-SET-POS-07 Verify that skipping profile setup causes the setup page to reappear on subsequent login
+    Given user creates a new account on the Signup page
+    When user logs in with the newly created account credentials
+    Then user should be redirected to the account setup page
+    When user clicks the setup "Skip for now" button
+    Then user should be redirected to the add pet page
+    When user logs out of the application
+    And user logs in again with the same account credentials
+    Then user should be redirected to the account setup page
+
+  @positive @persistence
+  Scenario: TC-SET-POS-08 Verify that completing profile setup prevents the setup page from appearing on subsequent login
+    Given user is authenticated and on the account setup page
+    When user enters profile first name "Robert"
+    And user enters profile last name "Smith"
+    And user enters profile phone number "5554445555"
+    And user enters a unique profile username
+    And user clicks the setup "Save & Continue" button
+    Then user should be redirected to the add pet page
+    When user logs out of the application
+    And user logs in again with the same account credentials
+    Then user should be redirected to the dashboard or home page
+    And user should not see the account setup page
+
   # ========================================================
   # NEGATIVE SCENARIOS
   # ========================================================
@@ -129,6 +154,16 @@ Feature: Zosalus Account Creation, Login, and Profile Setup Flow
     And user enters login password "WrongPassword999!"
     And user clicks the login "Sign In" button
     Then a login server error banner should appear containing "Invalid email or password."
+
+  @negative @validation
+  Scenario: TC-SET-NEG-07 Verify validation error when Username contains invalid special characters
+    Given user is authenticated and on the account setup page
+    When user enters profile first name "Sarah"
+    And user enters profile last name "Connor"
+    And user enters profile phone number "5552345678"
+    And user enters profile username "user_invalid#!"
+    And user clicks the setup "Save & Continue" button
+    Then the username error message should be "Username must contain only letters and numbers."
 
   # ========================================================
   # EDGE CASES

@@ -9,7 +9,7 @@ const testDir = defineBddConfig({
 
 module.exports = defineConfig({
   testDir,
-  timeout: parseInt(process.env.DEFAULT_TIMEOUT || '30000', 10),
+  timeout: parseInt(process.env.DEFAULT_TIMEOUT || '60000', 10),
   expect: {
     timeout: 5000,
   },

@@ -161,7 +161,7 @@ When('user enters profile phone number {string}', async ({ accountSetupPage }, p
 });
 
 When('user enters a unique profile username', async ({ accountSetupPage }) => {
-  const uniqueUsername = 'user_' + Date.now().toString().slice(-6);
+  const uniqueUsername = 'user' + Date.now().toString().slice(-6);
   await accountSetupPage.fillUsername(uniqueUsername);
 });
 
@@ -229,26 +229,30 @@ Then('the setup "Add an emergency contact" button should be visible', async ({ p
 // VALIDATION ERROR ASSERTIONS
 // ----------------------------------------------------
 
+When('user enters profile username {string}', async ({ accountSetupPage }, username) => {
+  await accountSetupPage.fillUsername(username);
+});
+
 Then('the first name error message should be {string}', async ({ page }, expectedError) => {
-  const errorEl = page.locator('p:has-text("First name is required")').first();
+  const errorEl = page.locator(`p:has-text("${expectedError}")`).first();
   await expect(errorEl).toBeVisible({ timeout: 5000 });
   await expect(errorEl).toHaveText(expectedError);
 });
 
 Then('the last name error message should be {string}', async ({ page }, expectedError) => {
-  const errorEl = page.locator('p:has-text("Last name is required")').first();
+  const errorEl = page.locator(`p:has-text("${expectedError}")`).first();
   await expect(errorEl).toBeVisible({ timeout: 5000 });
   await expect(errorEl).toHaveText(expectedError);
 });
 
 Then('the phone number error message should be {string}', async ({ page }, expectedError) => {
-  const errorEl = page.locator('p:has-text("Phone number is required")').first();
+  const errorEl = page.locator(`p:has-text("${expectedError}")`).first();
   await expect(errorEl).toBeVisible({ timeout: 5000 });
   await expect(errorEl).toHaveText(expectedError);
 });
 
 Then('the username error message should be {string}', async ({ page }, expectedError) => {
-  const errorEl = page.locator('p:has-text("Username is required")').first();
+  const errorEl = page.locator(`p:has-text("${expectedError}")`).first();
   await expect(errorEl).toBeVisible({ timeout: 5000 });
   await expect(errorEl).toHaveText(expectedError);
 });
@@ -266,4 +270,41 @@ Given('user navigates directly to the account setup page without authentication'
   await page.goto('https://frontend-yrox.onrender.com/account-setup');
   // Wait to see if redirected to login
   await page.waitForURL(url => url.pathname.includes('/login') || url.pathname.includes('/account-setup'), { timeout: 15000 });
+});
+
+// ----------------------------------------------------
+// PERSISTENCE ACROSS LOGINS (SETUP DISPLAY RULES)
+// ----------------------------------------------------
+
+When('user logs out of the application', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.context().clearCookies();
+  const loginPage = new LoginPage(page);
+  await loginPage.open();
+  await page.locator('input#email').waitFor({ state: 'visible', timeout: 10000 });
+});
+
+When('user logs in again with the same account credentials', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.fillEmail(sharedUserEmail);
+  await loginPage.fillPassword(sharedUserPassword);
+  await loginPage.submit();
+});
+
+Then('user should be redirected to the dashboard or home page', async ({ page }) => {
+  await page.waitForURL(
+    url => url.pathname.includes('/home') || url.pathname.includes('/dashboard') || url.pathname.includes('/add-pet'),
+    { timeout: 20000 }
+  );
+  expect(page.url()).not.toContain('/account-setup');
+});
+
+Then('user should not see the account setup page', async ({ page }) => {
+  await page.waitForTimeout(1000);
+  expect(page.url()).not.toContain('/account-setup');
+  const setupHeading = page.locator('h1:has-text("Set up your profile")');
+  await expect(setupHeading).not.toBeVisible();
 });
