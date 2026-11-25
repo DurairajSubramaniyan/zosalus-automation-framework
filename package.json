@@ -7,13 +7,24 @@
     "test": "npx bddgen && npx playwright test",
     "test:bdd": "npx bddgen && npx playwright test",
     "test:headed": "npx bddgen && npx playwright test --headed",
-    "test:login": "npx bddgen && npx playwright test features/login.feature --headed",
-    "test:signup": "npx bddgen && npx playwright test features/signup.feature --headed",
-    "test:fp": "npx bddgen && npx playwright test features/forgotPassword.feature --headed",
-    "test:setup": "npx bddgen && npx playwright test features/accountSetup.feature --headed",
+    "test:regression": "npx bddgen && npx playwright test .features-gen/features/regression/",
+    "test:regression:headed": "npx bddgen && npx playwright test .features-gen/features/regression/ --headed",
+    "test:signup": "npx bddgen && npx playwright test .features-gen/features/regression/signup.feature.spec.js --headed",
+    "test:signin": "npx bddgen && npx playwright test .features-gen/features/regression/signin.feature.spec.js --headed",
+    "test:setup": "npx bddgen && npx playwright test .features-gen/features/regression/accountSetup.feature.spec.js --headed",
+    "test:pet-create": "npx bddgen && npx playwright test .features-gen/features/regression/petCreation.feature.spec.js --headed",
+    "test:pet-edit": "npx bddgen && npx playwright test .features-gen/features/regression/petDetailsEdit.feature.spec.js --headed",
+    "test:subscription": "npx bddgen && npx playwright test .features-gen/features/regression/companionSubscription.feature.spec.js --headed",
+    "test:second-pet": "npx bddgen && npx playwright test .features-gen/features/regression/secondPetAfterSubscription.feature.spec.js --headed",
+    "test:health-records": "npx bddgen && npx playwright test .features-gen/features/regression/healthRecords.feature.spec.js --headed",
+    "test:conditions": "npx bddgen && npx playwright test .features-gen/features/regression/conditionsEpisodes.feature.spec.js --headed",
+    "test:settings": "npx bddgen && npx playwright test .features-gen/features/regression/profileSubscriptionSettings.feature.spec.js --headed",
+    "test:additional": "npx bddgen && npx playwright test .features-gen/features/regression/additionalScenarios.feature.spec.js --headed",
     "test:ui": "npx bddgen && npx playwright test --ui",
     "test:debug": "npx bddgen && npx playwright test --debug",
-    "test:report": "npx playwright show-report"
+    "test:report": "npx playwright show-report",
+    "db:inspect": "node utils/inspectDb.js",
+    "db:sync": "node utils/syncDbWithServer.js"
   },
   "keywords": [
     "playwright",
@@ -29,7 +40,8 @@
   "devDependencies": {
     "@playwright/test": "^1.58.0",
     "@types/node": "^22.13.14",
+    "better-sqlite3": "^13.1.1",
     "dotenv": "^16.4.7",
-    "playwright-bdd": "^7.8.2"
+    "playwright-bdd": "^9.2.1"
   }
 }

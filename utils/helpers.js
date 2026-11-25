@@ -1,20 +1,23 @@
+require('dotenv').config();
+const { testUserManager } = require('./TestUserManager');
+
 /**
- * Generates a unique random email for registration tests
- * @param {string} prefix
+ * Generates a unique standardized email for Zosalus DEV registration tests:
+ * Format: zosalus.patient.{uniqueId}@{TEST_EMAIL_DOMAIN}
+ * @param {string} [testKey='login-patient']
  * @returns {string}
  */
-function generateRandomEmail(prefix = 'testuser') {
-  const timestamp = Date.now();
-  const randomSuffix = Math.floor(Math.random() * 10000);
-  return `${prefix}_${timestamp}_${randomSuffix}@example.com`;
+function generateRandomEmail(testKey = 'login-patient') {
+  const patient = testUserManager.generatePatient(testKey);
+  return patient.email;
 }
 
 /**
- * Generates a valid password meeting requirements (10+ characters, at least 1 number)
+ * Returns the configured common DEV test patient password from .env (TEST_PATIENT_PASSWORD)
  * @returns {string}
  */
 function generateValidPassword() {
-  return `TestPass12345!`;
+  return testUserManager.getCommonPassword();
 }
 
 module.exports = {

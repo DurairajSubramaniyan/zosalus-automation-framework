@@ -3,8 +3,11 @@ const { defineBddConfig } = require('playwright-bdd');
 require('dotenv').config();
 
 const testDir = defineBddConfig({
-  features: 'features/*.feature',
-  steps: ['features/step_definitions/*.js', 'fixtures/testFixture.js'],
+  features: 'features/regression/*.feature',
+  steps: [
+    'features/step_definitions/regression/*.js',
+    'fixtures/testFixture.js',
+  ],
 });
 
 module.exports = defineConfig({
@@ -23,10 +26,10 @@ module.exports = defineConfig({
   ],
   use: {
     launchOptions: {
-      slowMo: 1000, // 👈 1 full second pause between each action
+      slowMo: parseInt(process.env.SLOW_MO || '300', 10),
     },
 
-    baseURL: process.env.BASE_URL || 'https://frontend-yrox.onrender.com',
+    baseURL: process.env.DEV_BASE_URL || process.env.BASE_URL || 'https://frontend-yrox.onrender.com',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

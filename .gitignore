@@ -4,6 +4,14 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 .env
+.env.*
+!.env.example
+database/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
 .DS_Store
 **/.DS_Store
 .features-gen/
+test-data/images/

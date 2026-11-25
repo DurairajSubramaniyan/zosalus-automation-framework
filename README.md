@@ -8,34 +8,47 @@ A complete, production-grade test automation framework built for the **Zosalus**
 
 ```
 Zosalus/
-├── .env                               # Environment configuration (Base URL, timeouts, etc.)
+├── .env                               # Environment configuration (DEV_BASE_URL, TEST_EMAIL_DOMAIN, TEST_PATIENT_PASSWORD)
 ├── .env.example                       # Template for environment settings
-├── .gitignore                         # Files excluded from git
+├── .gitignore                         # Files excluded from git (includes .env and database/)
 ├── package.json                       # Dependencies and execution scripts
 ├── playwright.config.js               # Playwright configuration with BDD support
 ├── jsconfig.json                      # VS Code JavaScript editor configuration
+├── database/
+│   └── zosalus-test.db                # Local SQLite database storing persistent DEV patient accounts
 ├── features/
-│   ├── signup.feature                 # 🥒 Signup Gherkin Feature file
-│   ├── login.feature                  # 🥒 Login Gherkin Feature file
+│   ├── signup.feature                 # 🥒 Signup Gherkin Feature file (creates & saves patient in SQLite)
+│   ├── login.feature                  # 🥒 Login Gherkin Feature file (reuses saved patient from SQLite)
+│   ├── accountSetup.feature           # 🥒 Account Setup Gherkin Feature file
 │   ├── forgotPassword.feature         # 🥒 Forgot & Reset Password Gherkin Feature file
+│   ├── medication.feature             # 🥒 Medication Gherkin Feature file (reuses saved patient)
+│   ├── reminder.feature               # 🥒 Reminder Gherkin Feature file (reuses saved patient)
+│   ├── vaccination.feature            # 🥒 Vaccination Gherkin Feature file (reuses saved patient)
+│   ├── healthRecord.feature           # 🥒 Health Record Gherkin Feature file (reuses saved patient)
 │   └── step_definitions/
 │       ├── signupSteps.js             # ✍️ Signup BDD Step definitions
 │       ├── loginSteps.js              # ✍️ Login BDD Step definitions
-│       └── forgotPasswordSteps.js     # ✍️ Forgot Password BDD Step definitions
+│       ├── accountSetupSteps.js       # ✍️ Account Setup BDD Step definitions
+│       ├── forgotPasswordSteps.js     # ✍️ Forgot Password BDD Step definitions
+│       └── patientModulesSteps.js     # ✍️ Reusable patient module BDD Step definitions
 ├── fixtures/
-│   ├── testFixture.js                 # Custom Playwright-BDD test fixture injecting Page Objects
+│   ├── testFixture.js                 # Custom Playwright-BDD test fixture injecting Page Objects & TestUserManager
 │   └── testFixture.d.ts               # Type definitions for custom fixtures & autocomplete
 ├── pages/
 │   ├── BasePage.js                    # Base page with reusable CSS selector actions
 │   ├── SignupPage.js                  # Signup Page Object Model (100% CSS selectors)
 │   ├── LoginPage.js                   # Login Page Object Model (100% CSS selectors)
+│   ├── AccountSetupPage.js            # Account Setup Page Object Model (100% CSS selectors)
 │   └── ForgotPasswordPage.js          # Forgot & Reset Password Page Object Model (100% CSS)
 ├── test-data/
 │   ├── signupData.js                  # Test datasets for signup scenarios
 │   ├── loginData.js                   # Test datasets for login scenarios
+│   ├── accountSetupData.js            # Test datasets for account setup scenarios
 │   └── forgotPasswordData.js          # Test datasets for forgot password scenarios
 └── utils/
-    └── helpers.js                     # Test utilities (dynamic email generator, helpers)
+    ├── TestUserManager.js             # Centralized SQLite persistent test-user manager (better-sqlite3)
+    ├── inspectDb.js                   # CLI utility to view saved patient accounts in SQLite
+    └── helpers.js                     # Test utilities (standardized email & password helpers)
 ```
 
 ---
