@@ -17,6 +17,7 @@ pipeline {
                 'petCreation.feature',
                 'addingPets.feature',
                 'petDetailsEdit.feature',
+                'freePlan.feature',
                 'companionSubscription.feature',
                 'secondPetAfterSubscription.feature',
                 'healthRecords.feature',
@@ -24,7 +25,7 @@ pipeline {
                 'profileSubscriptionSettings.feature',
                 'additionalScenarios.feature'
             ],
-            description: 'Select ALL to run the full 172-scenario regression suite at 7:00 AM or choose a specific module'
+            description: 'Select ALL to run the full 180-scenario regression suite at 7:00 AM or choose a specific module'
         )
     }
 
@@ -89,8 +90,9 @@ pipeline {
 
     post {
         always {
-            // Generate Feature-to-Scenario HTML report and publish to Jenkins userContent & public GitHub Pages (docs/)
+            // Sync SQLite with live server, generate Feature-to-Scenario HTML report, and publish to Jenkins userContent & public GitHub Pages (docs/)
             sh '''
+                npm run db:sync || true
                 npm run report:generate || true
                 if [ -d "playwright-report" ] && [ -n "$JENKINS_HOME" ]; then
                     mkdir -p "$JENKINS_HOME/userContent/zosalus-report"
