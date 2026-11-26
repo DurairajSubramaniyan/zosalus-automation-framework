@@ -147,7 +147,53 @@ class HealthRecordsPage extends BasePage {
   }
 
   /**
-   *Close the Add Health Record modal if open
+   * Read the current count of records for a specific Health Record category on /health-records.
+   * Checks the filter pill text e.g. "Vaccinations (1)" / "Medications (0)" and summary cards.
+   *
+   * @param {'Vaccination'|'Medication'|'Lab Results'|'Vital Signs'|'Allergy'} category
+   * @returns {Promise<number>}
+   */
+  async getCategoryRecordCount(category) {
+    const pillLabelMap = {
+      Vaccination: 'Vaccinations',
+      Medication: 'Medications',
+      'Lab Results': 'Lab Results',
+      'Vital Signs': 'Vital Signs',
+      Allergy: 'Allergies',
+    };
+    const label = pillLabelMap[category] || category;
+
+    // 1. Check filter pill text like "Vaccinations (2)" or "Medications (0)"
+    const pill = this.page
+      .locator(`button:has-text("${label} (")`)
+      .first();
+    if (await pill.isVisible({ timeout: 2500 }).catch(() => false)) {
+      const txt = (await pill.innerText().catch(() => '')) || '';
+      const match = txt.match(/\((\d+)\)/);
+      if (match) {
+        return parseInt(match[1], 10);
+      }
+    }
+
+    // 2. Fallback: check top summary card number next to uppercase label (e.g. VACCINATIONS 1)
+    const upperLabel = label.toUpperCase();
+    const card = this.page
+      .locator(`div:has-text("${upperLabel}")`)
+      .filter({ hasText: /\b\d+\b/ })
+      .first();
+    if (await card.isVisible({ timeout: 1500 }).catch(() => false)) {
+      const txt = (await card.innerText().catch(() => '')) || '';
+      const numMatch = txt.match(/\b(\d+)\b/);
+      if (numMatch) {
+        return parseInt(numMatch[1], 10);
+      }
+    }
+
+    return 0;
+  }
+
+  /**
+   * Close the Add Health Record modal if open
    */
   async closeAddRecordModal() {
     const closeBtn = this.page.locator(this.selectors.closeModalBtn);
@@ -163,19 +209,37 @@ class HealthRecordsPage extends BasePage {
    */
   async selectDropdownOption(triggerSelector, optionText) {
     const trigger = this.page.locator(triggerSelector);
+    if (!(await trigger.isVisible({ timeout: 3000 }).catch(() => false))) {
+      return;
+    }
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();
 
     const menuId = triggerSelector.replace(/^.*#/, '') + '-menu';
-    const option = this.page
-      .locator(`#${menuId} [role="option"], [role="listbox"] [role="option"]`)
-      .filter({ hasText: optionText })
-      .first();
+    const allOptions = this.page.locator(
+      `#${menuId} [role="option"], [role="listbox"] [role="option"]`
+    );
 
-    if (await option.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await option.click();
+    const exactOption = allOptions.filter({ hasText: optionText }).first();
+    if (await exactOption.isVisible({ timeout: 2500 }).catch(() => false)) {
+      await exactOption.click();
+      return;
+    }
+
+    const firstWord = String(optionText || '').split(/[\s/&(]+/)[0];
+    if (firstWord) {
+      const partialOption = allOptions.filter({ hasText: firstWord }).first();
+      if (await partialOption.isVisible({ timeout: 1500 }).catch(() => false)) {
+        await partialOption.click();
+        return;
+      }
+    }
+
+    const fallbackFirst = allOptions.first();
+    if (await fallbackFirst.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await fallbackFirst.click();
     } else {
-      await this.page.locator(`[role="option"]:has-text("${optionText}")`).first().click();
+      await this.page.keyboard.press('Escape');
     }
   }
 

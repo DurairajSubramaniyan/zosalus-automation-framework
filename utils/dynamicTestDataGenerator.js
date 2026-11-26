@@ -35,7 +35,7 @@ const LAST_NAMES = [
   'Prescott',
   'Montgomery',
   'Whitaker',
-  'aldridge',
+  'Aldridge',
   'Bennett',
   'Sullivan',
 ];
@@ -322,7 +322,7 @@ function generatePastDateMmDdYyyy(year = 2025) {
  */
 function generateDynamicOwnerProfile() {
   const firstName = pickRandom(FIRST_NAMES);
-  const lastName = `${pickRandom(LAST_NAMES)}${randomInt(10, 99)}`;
+  const lastName = pickRandom(LAST_NAMES);
   const phone = generateValidUsPhone();
   const username = `${firstName.toLowerCase()}${uniqueSuffix()}`;
   const address = generateDynamicAddress();
@@ -485,7 +485,7 @@ function generateDynamicVitalSigns() {
     temperatureC: `38.${randomInt(2, 8)}`,
     heartRateBpm: String(randomInt(72, 118)),
     respiratoryRateBpm: String(randomInt(18, 28)),
-    mucousMembraneColour: 'Pink & Moist (Normal)',
+    mucousMembraneColour: 'Pink',
     systolicBp: String(randomInt(115, 135)),
     diastolicBp: String(randomInt(70, 86)),
     crtSeconds: '1.5',
@@ -547,7 +547,7 @@ function generateDynamicEpisode(linkedConditionName) {
     wasMedicationGiven: true,
     medicationGiven: `Apoquel Rescue Dose ${sfx}`,
     medicationRoute: 'Oral',
-    responseToMedication: 'Significant Improvement',
+    responseToMedication: 'Improved',
   };
 }
 

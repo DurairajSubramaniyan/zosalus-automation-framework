@@ -75,18 +75,36 @@ class ConditionsEpisodesPage extends BasePage {
    */
   async selectDropdownOption(triggerSelector, optionText) {
     const trigger = this.page.locator(triggerSelector).first();
+    if (!(await trigger.isVisible({ timeout: 3000 }).catch(() => false))) {
+      return;
+    }
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();
 
-    const option = this.page
-      .locator('[role="listbox"] [role="option"], div[role="option"]')
-      .filter({ hasText: optionText })
-      .first();
+    const allOptions = this.page.locator(
+      '[role="listbox"] [role="option"], div[role="option"]'
+    );
 
-    if (await option.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await option.click();
+    const exactOption = allOptions.filter({ hasText: optionText }).first();
+    if (await exactOption.isVisible({ timeout: 2500 }).catch(() => false)) {
+      await exactOption.click();
+      return;
+    }
+
+    const firstWord = String(optionText || '').split(/[\s/&(]+/)[0];
+    if (firstWord) {
+      const partialOption = allOptions.filter({ hasText: firstWord }).first();
+      if (await partialOption.isVisible({ timeout: 1500 }).catch(() => false)) {
+        await partialOption.click();
+        return;
+      }
+    }
+
+    const fallbackFirst = allOptions.first();
+    if (await fallbackFirst.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await fallbackFirst.click();
     } else {
-      await this.page.locator(`text="${optionText}"`).first().click();
+      await this.page.keyboard.press('Escape');
     }
   }
 

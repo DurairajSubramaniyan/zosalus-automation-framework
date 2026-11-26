@@ -88,7 +88,17 @@ class AddPetPage extends BasePage {
     if (species !== undefined) {
       // Wait for species catalog loading spinner to settle if present
       await this.page.waitForTimeout(400);
-      const quickChip = this.page.locator(`button:has-text("${species}")`).first();
+      // Expand "+12 more species" button if present so all 20 species pills are visible
+      const expandMoreBtn = this.page
+        .locator('button:has-text("more species")')
+        .first();
+      if (await expandMoreBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
+        await expandMoreBtn.click();
+        await this.page.waitForTimeout(300);
+      }
+      const quickChip = this.page
+        .locator(`button:text-is("${species}"), button:has-text("${species}")`)
+        .first();
       if (await quickChip.isVisible().catch(() => false)) {
         await quickChip.click();
       } else {
@@ -110,11 +120,28 @@ class AddPetPage extends BasePage {
       const breedInput = this.page.locator(this.selectors.petBreedInput);
       await breedInput.click();
       await breedInput.fill(breed);
-      const breedOption = this.page.locator(`#petBreed-menu [role="option"]:has-text("${breed}")`).first();
-      if (await breedOption.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await breedOption.click();
+      await this.page.waitForTimeout(300);
+
+      const exactOption = this.page
+        .locator(`#petBreed-menu [role="option"]`)
+        .filter({ hasText: breed })
+        .first();
+
+      if (await exactOption.isVisible({ timeout: 2500 }).catch(() => false)) {
+        await exactOption.click();
       } else {
-        await breedInput.press('Tab');
+        // Fallback: clear filter and pick the first valid catalog breed for this species
+        await breedInput.fill('');
+        await this.page.waitForTimeout(400);
+        const firstCatalogOpt = this.page
+          .locator('#petBreed-menu [role="option"]')
+          .first();
+        if (await firstCatalogOpt.isVisible({ timeout: 2500 }).catch(() => false)) {
+          await firstCatalogOpt.click();
+        } else {
+          await breedInput.fill(breed);
+          await breedInput.press('Enter');
+        }
       }
     }
   }

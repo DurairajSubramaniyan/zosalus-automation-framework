@@ -15,6 +15,7 @@ pipeline {
                 'signin.feature',
                 'accountSetup.feature',
                 'petCreation.feature',
+                'addingPets.feature',
                 'petDetailsEdit.feature',
                 'companionSubscription.feature',
                 'secondPetAfterSubscription.feature',

@@ -857,6 +857,74 @@ class TestUserManager {
   }
 
   /**
+   * Retrieve an ACTIVE patient account from SQLite that has at least 1 registered pet
+   * (COALESCE(pet_count, has_pet, 0) >= 1).
+   *
+   * @param {Object} [options={}]
+   * @param {Array<string>} [options.excludeEmails=[]]
+   * @returns {Object|null}
+   */
+  getPatientWithAtLeastOnePet(options = {}) {
+    const { excludeEmails = [] } = options;
+    const normalizedExcluded = excludeEmails.map(e => e.toLowerCase());
+
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM test_users WHERE account_status = 'ACTIVE' AND COALESCE(pet_count, has_pet, 0) >= 1 ORDER BY COALESCE(pet_count, has_pet, 0) ASC, id DESC"
+      )
+      .all();
+
+    const match = rows.find(
+      r => !normalizedExcluded.includes(r.email.toLowerCase())
+    );
+    if (!match) return null;
+
+    const mapped = this._mapRow(match);
+    this._log('Retrieved active patient with at least 1 pet from SQLite', {
+      id: mapped.id,
+      email: mapped.email,
+      petCount: mapped.petCount,
+      petName: mapped.petName,
+      subscriptionTier: mapped.subscriptionTier,
+    });
+    return mapped;
+  }
+
+  /**
+   * Retrieve an ACTIVE Companion-plan patient account from SQLite that currently has ONLY 1 pet
+   * (subscription_tier = 'companion' AND pet_count = 1), ideal for testing adding pets up to the 10-pet Companion limit.
+   *
+   * @param {Object} [options={}]
+   * @param {Array<string>} [options.excludeEmails=[]]
+   * @returns {Object|null}
+   */
+  getCompanionPlanPatientWithExactOnePet(options = {}) {
+    const { excludeEmails = [] } = options;
+    const normalizedExcluded = excludeEmails.map(e => e.toLowerCase());
+
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM test_users WHERE account_status = 'ACTIVE' AND LOWER(subscription_tier) = 'companion' AND COALESCE(pet_count, has_pet, 0) = 1 ORDER BY id DESC"
+      )
+      .all();
+
+    const match = rows.find(
+      r => !normalizedExcluded.includes(r.email.toLowerCase())
+    );
+    if (!match) return null;
+
+    const mapped = this._mapRow(match);
+    this._log('Retrieved active Companion-plan account with exact 1 pet from SQLite', {
+      id: mapped.id,
+      email: mapped.email,
+      petCount: mapped.petCount,
+      petName: mapped.petName,
+      subscriptionTier: mapped.subscriptionTier,
+    });
+    return mapped;
+  }
+
+  /**
    * Retrieve an ACTIVE Companion-plan patient account from SQLite that has fewer than 10 pets
    * (or up to exact 10 pets when maxPets = 10) for multi-pet creation testing.
    *

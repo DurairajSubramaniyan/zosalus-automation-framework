@@ -7,6 +7,14 @@ Feature: Clinical Health Records Complete Regression Suite Across Vaccinations, 
     Given a regression patient user with an active registered pet is logged in on the Clinical Health Records page
 
   # ============================================================================
+  # 0. IDEMPOTENT ALL-5-CATEGORIES HEALTH RECORDS CHECK (ADD ONLY IF PET HAS NO RECORDS)
+  # ============================================================================
+
+  Scenario: RG-HR-00 Verify patient with registered pet adds all 5 clinical record categories only if missing and skips already existing records
+    When the regression user inspects all 5 clinical record categories for the active pet and adds dynamic records only for categories that have zero existing records
+    Then all 5 clinical health record categories should have at least 1 record without creating duplicates for already populated categories
+
+  # ============================================================================
   # 1. VACCINATION RECORDS (6 SCENARIOS)
   # ============================================================================
 

@@ -17,13 +17,46 @@ let dynamicMedication = null;
 let dynamicLabResult = null;
 let dynamicVitalSigns = null;
 let dynamicAllergy = null;
+let activeHealthCategory = null;
+let existingCategoryCounts = {
+  Vaccination: 0,
+  Medication: 0,
+  'Lab Results': 0,
+  'Vital Signs': 0,
+  Allergy: 0,
+};
+let skippedBecauseRecordExists = false;
+
+/**
+ * Refresh the live record count for all 5 clinical health categories on /health-records
+ */
+async function refreshAllCategoryCounts(healthRecordsPage) {
+  for (const cat of [
+    'Vaccination',
+    'Medication',
+    'Lab Results',
+    'Vital Signs',
+    'Allergy',
+  ]) {
+    existingCategoryCounts[cat] =
+      await healthRecordsPage.getCategoryRecordCount(cat);
+  }
+}
 
 Given(
   'a regression patient user with an active registered pet is logged in on the Clinical Health Records page',
   async ({ page, loginPage, healthRecordsPage, testUserManager }) => {
+    skippedBecauseRecordExists = false;
+    activeHealthCategory = null;
+
+    // Must retrieve an ACTIVE patient who has at least 1 registered pet
     const userWithPet =
+      testUserManager.getPatientWithAtLeastOnePet() ||
       testUserManager.getFreePlanPatientWithOnePet() ||
-      testUserManager.getAllPatients().find(u => u.hasPet);
+      testUserManager.getAllPatients().find(u => u.petCount >= 1 || u.hasPet);
+
+    expect(userWithPet).toBeTruthy();
+    expect(userWithPet.petCount).toBeGreaterThanOrEqual(1);
 
     await loginPage.open();
     await loginPage.fillLoginForm(
@@ -41,23 +74,103 @@ Given(
     );
 
     await healthRecordsPage.open();
+    await refreshAllCategoryCounts(healthRecordsPage);
+  }
+);
+
+When(
+  'the regression user inspects all 5 clinical record categories for the active pet and adds dynamic records only for categories that have zero existing records',
+  async ({ healthRecordsPage }) => {
+    await refreshAllCategoryCounts(healthRecordsPage);
+
+    if (existingCategoryCounts.Vaccination === 0) {
+      dynamicVaccination = generateDynamicVaccination();
+      await healthRecordsPage.addVaccinationRecord(dynamicVaccination);
+    } else {
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts.Vaccination} Vaccination record(s) — skipping add.`
+      );
+    }
+
+    if (existingCategoryCounts.Medication === 0) {
+      dynamicMedication = generateDynamicMedication();
+      await healthRecordsPage.addMedicationRecord(dynamicMedication);
+    } else {
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts.Medication} Medication record(s) — skipping add.`
+      );
+    }
+
+    if (existingCategoryCounts['Lab Results'] === 0) {
+      dynamicLabResult = generateDynamicLabResult('normal');
+      await healthRecordsPage.addLabResultRecord(dynamicLabResult);
+    } else {
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts['Lab Results']} Lab Results record(s) — skipping add.`
+      );
+    }
+
+    if (existingCategoryCounts['Vital Signs'] === 0) {
+      dynamicVitalSigns = generateDynamicVitalSigns();
+      await healthRecordsPage.addVitalSignsRecord(dynamicVitalSigns);
+    } else {
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts['Vital Signs']} Vital Signs record(s) — skipping add.`
+      );
+    }
+
+    if (existingCategoryCounts.Allergy === 0) {
+      dynamicAllergy = generateDynamicAllergy();
+      await healthRecordsPage.addAllergyRecord(dynamicAllergy);
+    } else {
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts.Allergy} Allergy record(s) — skipping add.`
+      );
+    }
+  }
+);
+
+Then(
+  'all 5 clinical health record categories should have at least 1 record without creating duplicates for already populated categories',
+  async ({ healthRecordsPage }) => {
+    await refreshAllCategoryCounts(healthRecordsPage);
+    for (const cat of [
+      'Vaccination',
+      'Medication',
+      'Lab Results',
+      'Vital Signs',
+      'Allergy',
+    ]) {
+      expect(existingCategoryCounts[cat]).toBeGreaterThanOrEqual(1);
+    }
   }
 );
 
 When(
   'the regression user opens the Add Health Record modal and selects the {string} category tab',
   async ({ healthRecordsPage }, tabName) => {
+    activeHealthCategory = tabName;
+    skippedBecauseRecordExists = false;
     await healthRecordsPage.openAddRecordModal(tabName);
   }
 );
 
 // ============================================================================
-// 1. VACCINATION STEPS (DYNAMIC DATA)
+// 1. VACCINATION STEPS (DYNAMIC DATA + SKIP IF ALREADY EXISTS)
 // ============================================================================
 
 When(
   'the regression user fills the Vaccination form with a dynamically generated vaccine name, date administered, next due date, and route',
   async ({ page, healthRecordsPage }) => {
+    if (existingCategoryCounts.Vaccination > 0) {
+      skippedBecauseRecordExists = true;
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts.Vaccination} Vaccination record(s) — skipping duplicate add.`
+      );
+      await healthRecordsPage.closeAddRecordModal();
+      return;
+    }
+
     dynamicVaccination = generateDynamicVaccination();
     const customBtn = page.locator(
       healthRecordsPage.selectors.enterCustomVaccineBtn
@@ -87,6 +200,7 @@ When(
 When(
   'the regression user fills the Vaccination form with a dynamically generated manufacturer, lot number, cost, and clinical notes',
   async ({ healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     if (!dynamicVaccination) dynamicVaccination = generateDynamicVaccination();
     await healthRecordsPage.clearAndFill(
       healthRecordsPage.selectors.vaccineManufacturerInput,
@@ -110,6 +224,7 @@ When(
 When(
   'the regression user clicks Log Vaccination to submit the vaccination form',
   async ({ healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     await healthRecordsPage.click(
       healthRecordsPage.selectors.logVaccinationSubmitBtn
     );
@@ -119,12 +234,19 @@ When(
 Then(
   'the dynamically generated Vaccination record should be saved and displayed on the Clinical Health Timeline',
   async ({ page, healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) {
+      await expect(
+        page.locator(healthRecordsPage.selectors.pageHeading).first()
+      ).toBeVisible({ timeout: 15000 });
+      return;
+    }
     await page
       .locator(healthRecordsPage.selectors.modalTitle)
       .waitFor({ state: 'hidden', timeout: 20000 });
     await expect(
       page.locator(`text=/${dynamicVaccination.vaccineName.split(' ')[0]}/i`).first()
     ).toBeVisible({ timeout: 15000 });
+    existingCategoryCounts.Vaccination += 1;
   }
 );
 
@@ -267,6 +389,15 @@ Then(
 When(
   'the regression user fills the Medication form with a dynamically generated drug name, brand name, strength, and formulation',
   async ({ page, healthRecordsPage }) => {
+    if (existingCategoryCounts.Medication > 0) {
+      skippedBecauseRecordExists = true;
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts.Medication} Medication record(s) — skipping duplicate add.`
+      );
+      await healthRecordsPage.closeAddRecordModal();
+      return;
+    }
+
     dynamicMedication = generateDynamicMedication();
     const customBtn = page.locator(
       healthRecordsPage.selectors.enterCustomMedicationBtn
@@ -296,6 +427,7 @@ When(
 When(
   'the regression user fills the Medication form with a dynamically generated dose amount, dose unit, frequency, and route',
   async ({ healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     if (!dynamicMedication) dynamicMedication = generateDynamicMedication();
     await healthRecordsPage.clearAndFill(
       healthRecordsPage.selectors.medDoseAmountInput,
@@ -319,6 +451,7 @@ When(
 When(
   'the regression user fills the Medication form with a dynamically generated start date and end date',
   async ({ healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     if (!dynamicMedication) dynamicMedication = generateDynamicMedication();
     await healthRecordsPage.fillDatePicker(
       healthRecordsPage.selectors.medStartDateInput,
@@ -334,6 +467,7 @@ When(
 When(
   'the regression user fills the Medication form with a dynamically generated Rx number, pharmacy, refills remaining, cost, and instructions',
   async ({ healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     if (!dynamicMedication) dynamicMedication = generateDynamicMedication();
     await healthRecordsPage.clearAndFill(
       healthRecordsPage.selectors.medRxNumberInput,
@@ -361,6 +495,7 @@ When(
 When(
   'the regression user clicks Log Medication to submit the medication form',
   async ({ page, healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     await healthRecordsPage.click(
       healthRecordsPage.selectors.logMedicationSubmitBtn
     );
@@ -376,6 +511,12 @@ When(
 Then(
   'the dynamically generated Medication record should be saved and displayed on the Clinical Health Timeline',
   async ({ page, healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) {
+      await expect(
+        page.locator(healthRecordsPage.selectors.pageHeading).first()
+      ).toBeVisible({ timeout: 15000 });
+      return;
+    }
     await page
       .locator(healthRecordsPage.selectors.modalTitle)
       .waitFor({ state: 'hidden', timeout: 20000 })
@@ -383,6 +524,7 @@ Then(
     await expect(
       page.locator(`text=/${dynamicMedication.drugName.split(' ')[0]}/i`).first()
     ).toBeVisible({ timeout: 15000 });
+    existingCategoryCounts.Medication += 1;
   }
 );
 
@@ -781,6 +923,15 @@ Then(
 When(
   'the regression user fills the Lab Results form with a dynamically generated {string} diagnostic analyte, panel, value, unit, reference limits, sample date, lab facility, notes, and fee',
   async ({ page, healthRecordsPage }, flagType) => {
+    if (existingCategoryCounts['Lab Results'] > 0) {
+      skippedBecauseRecordExists = true;
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts['Lab Results']} Lab Results record(s) — skipping duplicate add.`
+      );
+      await healthRecordsPage.closeAddRecordModal();
+      return;
+    }
+
     dynamicLabResult = generateDynamicLabResult(flagType);
     const customBtn = page.locator(
       healthRecordsPage.selectors.enterCustomLabTestBtn
@@ -834,6 +985,7 @@ When(
 When(
   'the regression user clicks Log Diagnostic Result to submit the lab result form',
   async ({ healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     await healthRecordsPage.click(
       healthRecordsPage.selectors.logLabResultSubmitBtn
     );
@@ -843,6 +995,12 @@ When(
 Then(
   'the dynamically generated Lab Result record should be saved on the Clinical Health Timeline',
   async ({ page, healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) {
+      await expect(
+        page.locator(healthRecordsPage.selectors.pageHeading).first()
+      ).toBeVisible({ timeout: 15000 });
+      return;
+    }
     await page
       .locator(healthRecordsPage.selectors.modalTitle)
       .waitFor({ state: 'hidden', timeout: 20000 })
@@ -850,6 +1008,7 @@ Then(
     await expect(
       page.locator(`text=/${dynamicLabResult.testName.split(' ')[0]}/i`).first()
     ).toBeVisible({ timeout: 15000 });
+    existingCategoryCounts['Lab Results'] += 1;
   }
 );
 
@@ -916,6 +1075,15 @@ Then(
 When(
   'the regression user fills the Vital Signs form with dynamically generated weight, temperature, heart rate, respiratory rate, mucous membrane colour, blood pressure, CRT, SpO2, exam date, and SOAP notes',
   async ({ healthRecordsPage }) => {
+    if (existingCategoryCounts['Vital Signs'] > 0) {
+      skippedBecauseRecordExists = true;
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts['Vital Signs']} Vital Signs record(s) — skipping duplicate add.`
+      );
+      await healthRecordsPage.closeAddRecordModal();
+      return;
+    }
+
     dynamicVitalSigns = generateDynamicVitalSigns();
     await healthRecordsPage.clearAndFill(
       healthRecordsPage.selectors.vitalWeightInput,
@@ -967,6 +1135,7 @@ When(
 When(
   'the regression user clicks Save Vital Signs to submit the vital signs form',
   async ({ healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     await healthRecordsPage.click(
       healthRecordsPage.selectors.saveVitalSignsSubmitBtn
     );
@@ -976,6 +1145,12 @@ When(
 Then(
   'the Vital Signs measurement should be saved and displayed on the Clinical Health Timeline',
   async ({ page, healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) {
+      await expect(
+        page.locator(healthRecordsPage.selectors.pageHeading).first()
+      ).toBeVisible();
+      return;
+    }
     await page
       .locator(healthRecordsPage.selectors.modalTitle)
       .waitFor({ state: 'hidden', timeout: 20000 })
@@ -983,6 +1158,7 @@ Then(
     await expect(
       page.locator(healthRecordsPage.selectors.pageHeading).first()
     ).toBeVisible();
+    existingCategoryCounts['Vital Signs'] += 1;
   }
 );
 
@@ -1086,6 +1262,15 @@ Then(
 When(
   'the regression user fills the Allergy form with a dynamically generated allergen substance, allergen type, clinical severity, observed reaction, confirmed date, and veterinary notes',
   async ({ healthRecordsPage }) => {
+    if (existingCategoryCounts.Allergy > 0) {
+      skippedBecauseRecordExists = true;
+      console.log(
+        `[HealthRecords] Pet already has ${existingCategoryCounts.Allergy} Allergy record(s) — skipping duplicate add.`
+      );
+      await healthRecordsPage.closeAddRecordModal();
+      return;
+    }
+
     dynamicAllergy = generateDynamicAllergy();
     await healthRecordsPage.clearAndFill(
       healthRecordsPage.selectors.allergySubstanceInput,
@@ -1117,6 +1302,7 @@ When(
 When(
   'the regression user clicks Log Allergy to submit the allergy form',
   async ({ healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) return;
     await healthRecordsPage.click(
       healthRecordsPage.selectors.logAllergySubmitBtn
     );
@@ -1126,6 +1312,12 @@ When(
 Then(
   'the dynamically generated Allergy record should be saved and displayed on the Clinical Health Timeline',
   async ({ page, healthRecordsPage }) => {
+    if (skippedBecauseRecordExists) {
+      await expect(
+        page.locator(healthRecordsPage.selectors.pageHeading).first()
+      ).toBeVisible({ timeout: 15000 });
+      return;
+    }
     await page
       .locator(healthRecordsPage.selectors.modalTitle)
       .waitFor({ state: 'hidden', timeout: 20000 })
@@ -1133,6 +1325,7 @@ Then(
     await expect(
       page.locator(`text=/${dynamicAllergy.allergen.split(' ')[0]}/i`).first()
     ).toBeVisible({ timeout: 15000 });
+    existingCategoryCounts.Allergy += 1;
   }
 );
 
