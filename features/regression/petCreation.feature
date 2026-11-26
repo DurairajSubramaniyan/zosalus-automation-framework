@@ -85,3 +85,8 @@ Feature: Three-Step Pet Onboarding Wizard, Field Validation, and Photo Upload Re
   Scenario: RG-PET-CREATE-14 Verify Free plan user who already has 1 active pet is blocked by the Companion upgrade gate on Add Pet
     When a Free plan regression user who already has 1 registered pet navigates to the Add Pet route
     Then the Add Pet route should display the Companion upgrade gate "Adding a second animal requires Companion"
+
+  Scenario: RG-PET-CREATE-15 Verify active Companion plan user with below or exact 10 pets creates a new pet with dynamically generated name and details
+    When an active Companion plan regression user with below or exact 10 pets is retrieved from SQLite and logged in
+    And the Companion user opens Add Pet and completes Step 1, Step 2, and Step 3 photo upload with dynamically generated pet name and details
+    Then the newly created dynamic pet should be saved in the portal and the Companion user pet count should be updated in SQLite

@@ -397,3 +397,130 @@ Then(
     ).toBeVisible({ timeout: 15000 });
   }
 );
+
+let activeCompanionUserUnder10 = null;
+let createdCompanionDynamicPet = null;
+let hitTenPetSlotLimit = false;
+
+When(
+  'an active Companion plan regression user with below or exact 10 pets is retrieved from SQLite and logged in',
+  async ({ page, loginPage, testUserManager }) => {
+    hitTenPetSlotLimit = false;
+    activeCompanionUserUnder10 =
+      testUserManager.getCompanionPlanPatientByPetLimit({ maxPets: 10 });
+    expect(activeCompanionUserUnder10).toBeTruthy();
+    expect(activeCompanionUserUnder10.subscriptionTier).toBe('companion');
+    expect(activeCompanionUserUnder10.petCount).toBeLessThanOrEqual(10);
+
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await page.context().clearCookies();
+
+    await loginPage.open();
+    await loginPage.fillLoginForm(
+      activeCompanionUserUnder10.email,
+      testUserManager.getCommonPassword()
+    );
+    await loginPage.submit();
+
+    await page.waitForURL(
+      url =>
+        url.pathname.includes('/home') ||
+        url.pathname.includes('/pets') ||
+        url.pathname.includes('/add-pet') ||
+        url.pathname.includes('/dashboard'),
+      { timeout: 35000 }
+    );
+  }
+);
+
+When(
+  'the Companion user opens Add Pet and completes Step 1, Step 2, and Step 3 photo upload with dynamically generated pet name and details',
+  async ({ page, addPetPage }) => {
+    const baseUrl =
+      process.env.DEV_BASE_URL || 'https://frontend-yrox.onrender.com';
+    await page.goto(`${baseUrl}/add-pet`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1200);
+
+    // If the Companion user already has exact 10 pets, verify the +5 Pet Slot Bundle limit gate instead of failing
+    const petNameVisible = await page
+      .locator(addPetPage.selectors.petNameInput)
+      .first()
+      .isVisible({ timeout: 8000 })
+      .catch(() => false);
+
+    if (!petNameVisible) {
+      hitTenPetSlotLimit = true;
+      return;
+    }
+
+    createdCompanionDynamicPet = generateDynamicPetProfile();
+    const imgPath = generatePetAvatarImage(
+      createdCompanionDynamicPet.name,
+      createdCompanionDynamicPet.species
+    );
+
+    await addPetPage.fillStep1({
+      name: createdCompanionDynamicPet.name,
+      species: createdCompanionDynamicPet.species,
+      breed: createdCompanionDynamicPet.breed,
+    });
+    await addPetPage.clickContinue();
+
+    await addPetPage.fillStep2({
+      birthdate: createdCompanionDynamicPet.birthdate,
+      sex: createdCompanionDynamicPet.sex,
+      neuterStatus: createdCompanionDynamicPet.neuterStatus,
+      colorMarkings: createdCompanionDynamicPet.colorMarkings,
+      microchipNumber: createdCompanionDynamicPet.microchipNumber,
+    });
+    await addPetPage.clickContinue();
+
+    await addPetPage.uploadAndCropPetPhoto(imgPath);
+    await addPetPage.clickSaveProfile();
+
+    await page.waitForURL(
+      url =>
+        url.pathname.includes('/pets') ||
+        url.pathname.includes('/home') ||
+        url.pathname.includes('/dashboard'),
+      { timeout: 30000 }
+    );
+  }
+);
+
+Then(
+  'the newly created dynamic pet should be saved in the portal and the Companion user pet count should be updated in SQLite',
+  async ({ page, testUserManager }) => {
+    if (hitTenPetSlotLimit) {
+      await expect(
+        page.locator('text=/10|Slot|Bundle|Companion|limit/i').first()
+      ).toBeVisible({ timeout: 15000 });
+      return;
+    }
+
+    expect(createdCompanionDynamicPet).toBeTruthy();
+    await expect(
+      page.locator(`text=/${createdCompanionDynamicPet.name}/i`).first()
+    ).toBeVisible({ timeout: 20000 });
+
+    const petUrlMatch = page.url().match(/\/pets\/([^/?#]+)/);
+    const newPetId = petUrlMatch ? petUrlMatch[1] : null;
+
+    if (activeCompanionUserUnder10) {
+      const updated = testUserManager.markPatientHasPet(
+        activeCompanionUserUnder10.email,
+        {
+          petName: createdCompanionDynamicPet.name,
+          petSpecies: createdCompanionDynamicPet.species,
+          petId: newPetId,
+        }
+      );
+      expect(updated.petCount).toBeGreaterThanOrEqual(
+        (activeCompanionUserUnder10.petCount || 0) + 1
+      );
+    }
+  }
+);

@@ -857,6 +857,41 @@ class TestUserManager {
   }
 
   /**
+   * Retrieve an ACTIVE Companion-plan patient account from SQLite that has fewer than 10 pets
+   * (or up to exact 10 pets when maxPets = 10) for multi-pet creation testing.
+   *
+   * @param {Object} [options={}]
+   * @param {number} [options.maxPets=9] Maximum pet_count allowed (9 = strictly below 10, 10 = exact 10 or below)
+   * @param {Array<string>} [options.excludeEmails=[]]
+   * @returns {Object|null}
+   */
+  getCompanionPlanPatientByPetLimit(options = {}) {
+    const { maxPets = 10, excludeEmails = [] } = options;
+    const normalizedExcluded = excludeEmails.map(e => e.toLowerCase());
+
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM test_users WHERE account_status = 'ACTIVE' AND LOWER(subscription_tier) = 'companion' AND COALESCE(pet_count, has_pet, 0) <= ? ORDER BY CASE WHEN COALESCE(pet_count, has_pet, 0) < 10 THEN 0 ELSE 1 END ASC, COALESCE(pet_count, has_pet, 0) DESC, id DESC"
+      )
+      .all(maxPets);
+
+    const match = rows.find(
+      r => !normalizedExcluded.includes(r.email.toLowerCase())
+    );
+    if (!match) return null;
+
+    const mapped = this._mapRow(match);
+    this._log('Retrieved active Companion-plan account within 10-pet limit from SQLite', {
+      id: mapped.id,
+      email: mapped.email,
+      petCount: mapped.petCount,
+      petName: mapped.petName,
+      subscriptionTier: mapped.subscriptionTier,
+    });
+    return mapped;
+  }
+
+  /**
    * Update a patient's subscription_tier ('free' or 'companion') in SQLite.
    *
    * @param {string} email
