@@ -398,7 +398,7 @@ function generateDynamicPetProfile(overrides = {}) {
     sex: overrides.sex || pickRandom(['Male', 'Female']),
     neuterStatus:
       overrides.neuterStatus ||
-      pickRandom(['Neutered / Spayed', 'Intact / Unneutered']),
+      pickRandom(['Neutered / Spayed', 'Intact']),
     colorMarkings: overrides.colorMarkings || pickRandom(catalogEntry.colors),
     microchipNumber: overrides.microchipNumber || generateIsoMicrochip15(),
   };

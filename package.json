@@ -14,6 +14,7 @@
     "test:setup": "npx bddgen && npx playwright test .features-gen/features/regression/accountSetup.feature.spec.js --headed",
     "test:pet-create": "npx bddgen && npx playwright test .features-gen/features/regression/petCreation.feature.spec.js --headed",
     "test:adding-pets": "npx bddgen && npx playwright test .features-gen/features/regression/addingPets.feature.spec.js --headed",
+    "test:free-plan": "npx bddgen && npx playwright test .features-gen/features/regression/freePlan.feature.spec.js --headed",
     "test:pet-edit": "npx bddgen && npx playwright test .features-gen/features/regression/petDetailsEdit.feature.spec.js --headed",
     "test:subscription": "npx bddgen && npx playwright test .features-gen/features/regression/companionSubscription.feature.spec.js --headed",
     "test:second-pet": "npx bddgen && npx playwright test .features-gen/features/regression/secondPetAfterSubscription.feature.spec.js --headed",
