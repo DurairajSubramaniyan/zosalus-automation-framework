@@ -21,7 +21,8 @@ module.exports = defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1, // 👈 Runs 1 test at a time sequentially so you can watch clearly!
   reporter: [
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['json', { outputFile: 'playwright-report/results.json' }],
+    ['./utils/ZosalusFeatureReporter.js'],
     ['list']
   ],
   use: {

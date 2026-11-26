@@ -23,8 +23,11 @@
     "test:ui": "npx bddgen && npx playwright test --ui",
     "test:debug": "npx bddgen && npx playwright test --debug",
     "test:report": "npx playwright show-report",
+    "report:generate": "node utils/generateFeatureScenarioReport.js",
     "db:inspect": "node utils/inspectDb.js",
-    "db:sync": "node utils/syncDbWithServer.js"
+    "db:sync": "node utils/syncDbWithServer.js",
+    "jenkins:setup": "node utils/setupJenkinsPipeline.js",
+    "jenkins:start": "node utils/setupJenkinsPipeline.js && JENKINS_HOME=/Users/durairaj/Desktop/Zosalus/.jenkins JAVA_OPTS='-Djenkins.install.runSetupWizard=false -Dhudson.model.DirectoryBrowserSupport.CSP=' /opt/homebrew/bin/jenkins-lts --httpPort=8080"
   },
   "keywords": [
     "playwright",
