@@ -6,6 +6,7 @@ const PROJECT_DIR = path.resolve(__dirname, '..');
 const FEATURES_DIR = path.join(PROJECT_DIR, 'features', 'regression');
 const REPORT_DIR = path.join(PROJECT_DIR, 'playwright-report');
 const DOCS_DIR = path.join(PROJECT_DIR, 'docs');
+const HISTORY_FILE = path.join(DOCS_DIR, 'report-history.json');
 const JENKINS_REPORT_DIR = path.join(
   PROJECT_DIR,
   '.jenkins',
@@ -159,7 +160,82 @@ function parseAllRegressionFeatures() {
 }
 
 /**
- * Generate the Full-Width Expandable Feature Accordion HTML Report
+ * Load existing date/time run history from docs/report-history.json and append the current completed pipeline run
+ */
+function updateRunHistory(features) {
+  let history = [];
+  if (fs.existsSync(HISTORY_FILE)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+      if (Array.isArray(parsed)) {
+        history = parsed;
+      }
+    } catch (_e) {
+      history = [];
+    }
+  }
+
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const dateKey = `${yyyy}-${mm}-${dd}`;
+  const dateLabel = now.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+  });
+  const completedTime = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+
+  const totalFeatures = features.length;
+  const totalScenarios = features.reduce((sum, f) => sum + f.totalScenarios, 0);
+  const totalPassed = features.reduce((sum, f) => sum + f.passedCount, 0);
+  const totalFailed = features.reduce((sum, f) => sum + f.failedCount, 0);
+  const passRate =
+    totalScenarios > 0
+      ? ((totalPassed / totalScenarios) * 100).toFixed(1)
+      : '100.0';
+
+  const triggerSource = process.env.BUILD_NUMBER
+    ? `Jenkins Build #${process.env.BUILD_NUMBER} (7:00 AM Pipeline)`
+    : process.env.CI
+      ? 'CI Pipeline Run'
+      : 'Zosalus Regression Pipeline';
+
+  const currentRun = {
+    runId: `run-${now.getTime()}`,
+    dateKey,
+    dateLabel,
+    completedTime,
+    completedFull: `${dateLabel} at ${completedTime}`,
+    completedIso: now.toISOString(),
+    triggerSource,
+    totalFeatures,
+    totalScenarios,
+    totalPassed,
+    totalFailed,
+    passRate,
+    features,
+  };
+
+  // Prepend newest run and keep up to 60 historical runs
+  history.unshift(currentRun);
+  if (history.length > 60) {
+    history = history.slice(0, 60);
+  }
+
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+  return history;
+}
+
+/**
+ * Generate the Full-Width Expandable Feature Accordion HTML Report with Date & Pipeline Completion Time Dropdowns
  */
 function generateFeatureScenarioReport() {
   fs.mkdirSync(REPORT_DIR, { recursive: true });
@@ -167,18 +243,9 @@ function generateFeatureScenarioReport() {
   fs.mkdirSync(JENKINS_REPORT_DIR, { recursive: true });
 
   const features = parseAllRegressionFeatures();
+  const runHistory = updateRunHistory(features);
   const dbUsers = testUserManager.getAllPatients();
-
-  const totalFeatures = features.length;
-  const totalScenarios = features.reduce((sum, f) => sum + f.totalScenarios, 0);
-  const totalPassed = features.reduce((sum, f) => sum + f.passedCount, 0);
-  const totalFailed = features.reduce((sum, f) => sum + f.failedCount, 0);
-  const passRate =
-    totalScenarios > 0 ? ((totalPassed / totalScenarios) * 100).toFixed(1) : '100.0';
-  const generatedAt = new Date().toLocaleString('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'medium',
-  });
+  const latestRun = runHistory[0];
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -305,7 +372,72 @@ function generateFeatureScenarioReport() {
     .container {
       max-width: 1360px;
       margin: 0 auto;
-      padding: 22px 28px 48px;
+      padding: 20px 28px 48px;
+    }
+
+    /* Date & Pipeline Completed Time Selector Bar */
+    .history-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .history-selectors {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .dropdown-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dropdown-field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+
+    .select-input {
+      background: var(--bg-page);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 7px 12px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      min-width: 195px;
+    }
+
+    .select-input:focus {
+      border-color: var(--accent);
+    }
+
+    .run-meta-badge {
+      font-size: 12px;
+      color: #cbd5e1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 6px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
     /* Toolbar: Tabs, Search, Status Filters, Expand/Collapse All */
@@ -482,7 +614,7 @@ function generateFeatureScenarioReport() {
     .feature-metrics {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       flex-shrink: 0;
       flex-wrap: wrap;
     }
@@ -744,24 +876,42 @@ function generateFeatureScenarioReport() {
       <div class="brand-logo">Z</div>
       <div class="brand-title">
         <h1>Zosalus Regression Suite — Feature &amp; Scenario Report</h1>
-        <p>Jenkins Daily 7:00 AM Pipeline (0 7 * * *) • Last Updated: ${generatedAt}</p>
+        <p id="headerSubtitle">Jenkins Daily 7:00 AM Pipeline (0 7 * * *) • Completed: ${latestRun.completedFull}</p>
       </div>
     </div>
 
     <div class="summary-strip">
-      <div class="stat-pill">Features: <strong>${totalFeatures}</strong></div>
-      <div class="stat-pill">Total Scenarios: <strong>${totalScenarios}</strong></div>
-      <div class="stat-pill stat-pass">✓ Passed: <strong>${totalPassed}</strong></div>
-      <div class="stat-pill ${totalFailed > 0 ? 'stat-fail' : ''}">✕ Failed: <strong>${totalFailed}</strong></div>
-      <div class="stat-pill stat-pass">Pass Rate: <strong>${passRate}%</strong></div>
+      <div class="stat-pill">Features: <strong id="statFeatures">${latestRun.totalFeatures}</strong></div>
+      <div class="stat-pill">Total Scenarios: <strong id="statTotal">${latestRun.totalScenarios}</strong></div>
+      <div class="stat-pill stat-pass">✓ Passed: <strong id="statPassed">${latestRun.totalPassed}</strong></div>
+      <div class="stat-pill" id="statFailedPill">✕ Failed: <strong id="statFailed">${latestRun.totalFailed}</strong></div>
+      <div class="stat-pill stat-pass">Pass Rate: <strong id="statRate">${latestRun.passRate}%</strong></div>
     </div>
   </header>
 
   <main class="container">
+    <!-- DATE & PIPELINE COMPLETION TIME DROPDOWNS -->
+    <div class="history-bar">
+      <div class="history-selectors">
+        <div class="dropdown-field">
+          <label for="reportDateSelect">Report Date:</label>
+          <select id="reportDateSelect" class="select-input" onchange="onDateChange()"></select>
+        </div>
+
+        <div class="dropdown-field">
+          <label for="reportTimeSelect">Pipeline Completed Time:</label>
+          <select id="reportTimeSelect" class="select-input" onchange="onTimeChange()"></select>
+        </div>
+      </div>
+
+      <div id="runMetaBadge" class="run-meta-badge"></div>
+    </div>
+
+    <!-- VIEW TABS, SEARCH, STATUS FILTERS & EXPAND/COLLAPSE -->
     <div class="controls-bar">
       <div class="controls-left">
         <div class="mode-tabs">
-          <button class="mode-tab active" onclick="switchView('features', this)">Features &amp; Scenarios (${totalScenarios})</button>
+          <button class="mode-tab active" id="featuresTabBtn" onclick="switchView('features', this)">Features &amp; Scenarios (${latestRun.totalScenarios})</button>
           <button class="mode-tab" onclick="switchView('database', this)">SQLite test_users DB (${dbUsers.length})</button>
         </div>
         <input
@@ -823,9 +973,88 @@ function generateFeatureScenarioReport() {
   </main>
 
   <script>
-    const FEATURES_DATA = ${JSON.stringify(features)};
-    const expandedFeatureKeys = new Set(); // Starts collapsed so all 11 features are cleanly visible in full width
+    const RUN_HISTORY = ${JSON.stringify(runHistory)};
+    const expandedFeatureKeys = new Set();
+    let activeRun = RUN_HISTORY[0];
     let statusFilter = 'ALL';
+
+    function populateDateDropdown() {
+      const dateSelect = document.getElementById('reportDateSelect');
+      dateSelect.innerHTML = '';
+
+      const uniqueDates = [];
+      const seen = new Set();
+      RUN_HISTORY.forEach(run => {
+        if (!seen.has(run.dateKey)) {
+          seen.add(run.dateKey);
+          uniqueDates.push({ dateKey: run.dateKey, dateLabel: run.dateLabel });
+        }
+      });
+
+      uniqueDates.forEach((d, idx) => {
+        const opt = document.createElement('option');
+        opt.value = d.dateKey;
+        const runsOnDate = RUN_HISTORY.filter(r => r.dateKey === d.dateKey).length;
+        opt.textContent = d.dateLabel + (idx === 0 ? ' (Latest)' : '') + ' • ' + runsOnDate + (runsOnDate === 1 ? ' run' : ' runs');
+        dateSelect.appendChild(opt);
+      });
+
+      populateTimeDropdown(uniqueDates[0]?.dateKey);
+    }
+
+    function populateTimeDropdown(dateKey) {
+      const timeSelect = document.getElementById('reportTimeSelect');
+      timeSelect.innerHTML = '';
+
+      const runsForDate = RUN_HISTORY.filter(r => r.dateKey === dateKey);
+      runsForDate.forEach((run, idx) => {
+        const opt = document.createElement('option');
+        opt.value = run.runId;
+        opt.textContent = run.completedTime + ' — ' + run.totalPassed + '/' + run.totalScenarios + ' Passed (' + run.passRate + '%)' + (idx === 0 ? ' [Latest]' : '');
+        timeSelect.appendChild(opt);
+      });
+
+      if (runsForDate.length > 0) {
+        selectRunById(runsForDate[0].runId);
+      }
+    }
+
+    function onDateChange() {
+      const dateKey = document.getElementById('reportDateSelect').value;
+      populateTimeDropdown(dateKey);
+    }
+
+    function onTimeChange() {
+      const runId = document.getElementById('reportTimeSelect').value;
+      selectRunById(runId);
+    }
+
+    function selectRunById(runId) {
+      const found = RUN_HISTORY.find(r => r.runId === runId);
+      if (!found) return;
+      activeRun = found;
+
+      // Update top summary strip & completion timestamp
+      document.getElementById('headerSubtitle').textContent =
+        activeRun.triggerSource + ' • Pipeline Completed: ' + activeRun.completedFull;
+      document.getElementById('statFeatures').textContent = activeRun.totalFeatures;
+      document.getElementById('statTotal').textContent = activeRun.totalScenarios;
+      document.getElementById('statPassed').textContent = activeRun.totalPassed;
+      document.getElementById('statFailed').textContent = activeRun.totalFailed;
+      document.getElementById('statRate').textContent = activeRun.passRate + '%';
+      document.getElementById('featuresTabBtn').textContent =
+        'Features & Scenarios (' + activeRun.totalScenarios + ')';
+
+      const failedPill = document.getElementById('statFailedPill');
+      failedPill.className = 'stat-pill' + (activeRun.totalFailed > 0 ? ' stat-fail' : '');
+
+      document.getElementById('runMetaBadge').innerHTML =
+        '<span>🕒 Completed: <strong>' + activeRun.completedFull + '</strong></span>' +
+        '<span>•</span>' +
+        '<span>' + activeRun.triggerSource + '</span>';
+
+      renderFeatures();
+    }
 
     function switchView(view, btn) {
       document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
@@ -856,7 +1085,7 @@ function generateFeatureScenarioReport() {
     }
 
     function expandAllFeatures() {
-      FEATURES_DATA.forEach(f => expandedFeatureKeys.add(f.moduleKey));
+      (activeRun?.features || []).forEach(f => expandedFeatureKeys.add(f.moduleKey));
       renderFeatures();
     }
 
@@ -870,9 +1099,10 @@ function generateFeatureScenarioReport() {
       const container = document.getElementById('featuresView');
       container.innerHTML = '';
 
+      const featuresList = activeRun?.features || [];
       let renderedCount = 0;
 
-      FEATURES_DATA.forEach((feat, idx) => {
+      featuresList.forEach((feat, idx) => {
         const featureMatchesQuery =
           !query ||
           feat.fileName.toLowerCase().includes(query) ||
@@ -973,7 +1203,7 @@ function generateFeatureScenarioReport() {
       }
     }
 
-    renderFeatures();
+    populateDateDropdown();
   </script>
 </body>
 </html>`;
@@ -984,11 +1214,11 @@ function generateFeatureScenarioReport() {
   fs.writeFileSync(path.join(JENKINS_REPORT_DIR, 'index.html'), html, 'utf8');
 
   console.log(
-    `✅ Generated Full-Width Expandable Feature Report (${totalFeatures} features, ${totalScenarios} scenarios)`
+    `✅ Generated Date & Time History Report (${latestRun.totalFeatures} features, ${latestRun.totalScenarios} scenarios, ${runHistory.length} saved run(s))`
   );
-  console.log(`   - Local Report:   ${path.join(REPORT_DIR, 'index.html')}`);
+  console.log(`   - Completed At:   ${latestRun.completedFull}`);
+  console.log(`   - History File:   ${HISTORY_FILE}`);
   console.log(`   - GitHub Pages:   ${path.join(DOCS_DIR, 'index.html')}`);
-  console.log(`   - Jenkins Report: ${path.join(JENKINS_REPORT_DIR, 'index.html')}`);
 }
 
 if (require.main === module) {

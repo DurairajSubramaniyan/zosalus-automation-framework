@@ -96,7 +96,7 @@ pipeline {
                     cp -R playwright-report/* "$JENKINS_HOME/userContent/zosalus-report/" || true
                 fi
                 if [ -f "docs/index.html" ]; then
-                    git add docs/index.html docs/.nojekyll || true
+                    git add docs/index.html docs/report-history.json docs/.nojekyll || true
                     git diff --staged --quiet || (git commit -m "chore(report): update daily 7AM regression HTML report" && git push origin main) || true
                 fi
             '''
