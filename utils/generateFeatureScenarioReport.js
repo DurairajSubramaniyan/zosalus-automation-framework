@@ -23,7 +23,6 @@ function parseAllRegressionFeatures() {
     .filter(f => f.endsWith('.feature'))
     .sort();
 
-  // Load latest Playwright JSON execution results if available
   const resultsJsonPath = path.join(REPORT_DIR, 'results.json');
   const executedMap = new Map();
   if (fs.existsSync(resultsJsonPath)) {
@@ -160,7 +159,7 @@ function parseAllRegressionFeatures() {
 }
 
 /**
- * Generate the interactive Master-Detail Feature & Scenario HTML Report
+ * Generate the Full-Width Expandable Feature Accordion HTML Report
  */
 function generateFeatureScenarioReport() {
   fs.mkdirSync(REPORT_DIR, { recursive: true });
@@ -186,23 +185,23 @@ function generateFeatureScenarioReport() {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zosalus Playwright BDD Regression Report — Features & Scenarios</title>
+  <title>Zosalus Playwright BDD Regression Report</title>
   <style>
     :root {
-      --bg-dark: #14171c;
-      --bg-panel: #1d2129;
-      --bg-card: #252a34;
-      --bg-hover: #2d3340;
-      --border: #343b4a;
-      --text-main: #f1f5f9;
+      --bg-page: #111419;
+      --bg-surface: #1a1f28;
+      --bg-card: #212733;
+      --bg-hover: #283040;
+      --bg-steps: #151922;
+      --border: #303847;
+      --text-main: #f3f6fb;
       --text-muted: #94a3b8;
-      --accent: #c85a17;
-      --accent-soft: rgba(200, 90, 23, 0.18);
+      --accent: #d4651f;
+      --accent-soft: rgba(212, 101, 31, 0.16);
       --pass: #10b981;
       --pass-bg: rgba(16, 185, 129, 0.14);
       --fail: #ef4444;
-      --fail-bg: rgba(239, 68, 68, 0.15);
-      --blue: #3b82f6;
+      --fail-bg: rgba(239, 68, 68, 0.16);
     }
 
     * {
@@ -213,24 +212,26 @@ function generateFeatureScenarioReport() {
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-      background-color: var(--bg-dark);
+      background-color: var(--bg-page);
       color: var(--text-main);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      min-height: 100vh;
+      line-height: 1.45;
     }
 
-    /* Top Header Bar */
+    /* Sticky Top Header */
     .topbar {
-      background: var(--bg-panel);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(26, 31, 40, 0.96);
+      backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--border);
-      padding: 12px 20px;
+      padding: 14px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 16px;
-      flex-shrink: 0;
     }
 
     .brand {
@@ -240,34 +241,35 @@ function generateFeatureScenarioReport() {
     }
 
     .brand-logo {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      background: linear-gradient(135deg, #c85a17, #e07a38);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #c85a17, #e57e39);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 18px;
+      font-size: 19px;
       color: #fff;
-      box-shadow: 0 2px 8px rgba(200, 90, 23, 0.35);
+      flex-shrink: 0;
     }
 
     .brand-title h1 {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 700;
-      letter-spacing: 0.2px;
+      color: var(--text-main);
     }
 
     .brand-title p {
       font-size: 12px;
       color: var(--text-muted);
+      margin-top: 2px;
     }
 
     .summary-strip {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
@@ -276,15 +278,15 @@ function generateFeatureScenarioReport() {
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 6px 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
       font-size: 12.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
     }
 
     .stat-pill strong {
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 13.5px;
     }
 
     .stat-pass {
@@ -299,10 +301,46 @@ function generateFeatureScenarioReport() {
       color: #f87171;
     }
 
-    /* Navigation Tabs (Features Explorer vs SQLite DB Table) */
-    .mode-tabs {
+    /* Main Container */
+    .container {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 22px 28px 48px;
+    }
+
+    /* Toolbar: Tabs, Search, Status Filters, Expand/Collapse All */
+    .controls-bar {
       display: flex;
-      background: var(--bg-card);
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mode-tabs {
+      display: inline-flex;
+      background: var(--bg-page);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 3px;
@@ -313,12 +351,12 @@ function generateFeatureScenarioReport() {
       background: transparent;
       border: none;
       color: var(--text-muted);
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 6px;
       font-size: 12.5px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s ease;
+      white-space: nowrap;
     }
 
     .mode-tab.active {
@@ -326,49 +364,15 @@ function generateFeatureScenarioReport() {
       color: #fff;
     }
 
-    /* Split Workspace (Left Feature Table + Right Scenario Inspector) */
-    .workspace {
-      display: grid;
-      grid-template-columns: 470px 1fr;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .left-pane {
-      background: var(--bg-panel);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .pane-toolbar {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: rgba(0, 0, 0, 0.15);
-    }
-
-    .pane-toolbar-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-muted);
-    }
-
     .search-box {
-      width: 100%;
-      background: var(--bg-dark);
+      flex: 1;
+      min-width: 220px;
+      max-width: 380px;
+      background: var(--bg-page);
       border: 1px solid var(--border);
       color: var(--text-main);
-      padding: 8px 11px;
-      border-radius: 6px;
+      padding: 8px 12px;
+      border-radius: 7px;
       font-size: 13px;
       outline: none;
     }
@@ -377,182 +381,233 @@ function generateFeatureScenarioReport() {
       border-color: var(--accent);
     }
 
-    .feature-list {
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    .feature-table {
-      width: 100%;
-      border-collapse: collapse;
+    .btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 7px 13px;
+      border-radius: 7px;
       font-size: 12.5px;
-    }
-
-    .feature-table th {
-      position: sticky;
-      top: 0;
-      background: #181c23;
-      color: var(--text-muted);
-      text-align: left;
-      padding: 9px 12px;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid var(--border);
-      z-index: 2;
-    }
-
-    .feature-row {
-      border-bottom: 1px solid rgba(52, 59, 74, 0.6);
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.12s ease;
+      white-space: nowrap;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
 
-    .feature-row:hover {
+    .btn:hover {
+      background: var(--bg-hover);
+      border-color: #475569;
+    }
+
+    .btn.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* Full-Width Feature Accordion List */
+    .features-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .feature-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.15s ease;
+    }
+
+    .feature-card.expanded {
+      border-color: rgba(212, 101, 31, 0.65);
+    }
+
+    .feature-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+
+    .feature-header:hover {
       background: var(--bg-hover);
     }
 
-    .feature-row.selected {
-      background: var(--accent-soft);
-      border-left: 3px solid var(--accent);
+    .feature-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+      flex: 1;
     }
 
-    .feature-row td {
-      padding: 11px 12px;
-      vertical-align: middle;
+    .feature-index {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
-    .feature-file-name {
-      font-weight: 600;
+    .feature-titles {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .feature-filename {
+      font-size: 15px;
+      font-weight: 700;
       color: var(--text-main);
-      display: block;
       margin-bottom: 3px;
     }
 
-    .feature-sub-title {
-      font-size: 11.5px;
+    .feature-subtitle {
+      font-size: 12.5px;
       color: var(--text-muted);
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+    }
+
+    .feature-metrics {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .metric-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .metric-chip strong {
+      color: var(--text-main);
     }
 
     .badge {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
+      gap: 5px;
+      padding: 4px 10px;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 700;
       letter-spacing: 0.3px;
+      white-space: nowrap;
     }
 
     .badge-pass {
       background: var(--pass-bg);
       color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.35);
+      border: 1px solid rgba(16, 185, 129, 0.38);
     }
 
     .badge-fail {
       background: var(--fail-bg);
       color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.35);
+      border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
-    /* Right Pane: Scenarios for Selected Feature */
-    .right-pane {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background: var(--bg-dark);
-    }
-
-    .right-header {
-      padding: 16px 22px;
-      background: var(--bg-panel);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .selected-feature-info h2 {
-      font-size: 17px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .selected-feature-info p {
-      font-size: 12.5px;
-      color: var(--text-muted);
-    }
-
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .filter-btn {
+    .expand-pill {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 6px 12px;
+      color: #cbd5e1;
+      padding: 5px 12px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
-      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
     }
 
-    .filter-btn.active {
+    .feature-card.expanded .expand-pill {
+      background: var(--accent-soft);
       border-color: var(--accent);
       color: #fff;
-      background: var(--accent-soft);
     }
 
-    .scenarios-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 18px 22px;
+    .chevron {
+      display: inline-block;
+      transition: transform 0.18s ease;
+      font-size: 10px;
+    }
+
+    .feature-card.expanded .chevron {
+      transform: rotate(90deg);
+    }
+
+    /* Expanded Scenarios Panel */
+    .feature-body {
+      display: none;
+      border-top: 1px solid var(--border);
+      background: #141821;
+      padding: 16px 20px 20px;
+    }
+
+    .feature-card.expanded .feature-body {
+      display: block;
+    }
+
+    .feature-description {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .scenarios-list {
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
 
-    .scenario-card {
-      background: var(--bg-panel);
+    .scenario-item {
+      background: var(--bg-surface);
       border: 1px solid var(--border);
       border-radius: 8px;
       overflow: hidden;
-      transition: border-color 0.15s ease;
+      flex-shrink: 0;
     }
 
-    .scenario-card:hover {
-      border-color: #4b5568;
-    }
-
-    .scenario-header {
+    .scenario-row {
       padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
       cursor: pointer;
-      user-select: none;
     }
 
-    .scenario-title-wrap {
+    .scenario-row:hover {
+      background: var(--bg-hover);
+    }
+
+    .scenario-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       min-width: 0;
+      flex: 1;
     }
 
     .scenario-id {
@@ -561,9 +616,10 @@ function generateFeatureScenarioReport() {
       font-weight: 700;
       color: #fb923c;
       background: rgba(251, 146, 60, 0.12);
-      border: 1px solid rgba(251, 146, 60, 0.3);
-      padding: 2px 7px;
+      border: 1px solid rgba(251, 146, 60, 0.32);
+      padding: 3px 8px;
       border-radius: 5px;
+      white-space: nowrap;
       flex-shrink: 0;
     }
 
@@ -571,91 +627,114 @@ function generateFeatureScenarioReport() {
       font-size: 13.5px;
       font-weight: 600;
       color: var(--text-main);
+      word-break: break-word;
     }
 
-    .scenario-meta {
+    .scenario-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-shrink: 0;
     }
 
     .duration-tag {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: nowrap;
+    }
+
+    .steps-toggle-hint {
       font-size: 11.5px;
       color: var(--text-muted);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: nowrap;
     }
 
     .scenario-steps {
-      border-top: 1px solid var(--border);
-      background: #161920;
-      padding: 12px 18px;
       display: none;
-      flex-direction: column;
-      gap: 6px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-steps);
+      padding: 12px 18px;
     }
 
-    .scenario-card.expanded .scenario-steps {
-      display: flex;
+    .scenario-item.steps-open .scenario-steps {
+      display: block;
     }
 
-    .step-row {
+    .step-line {
       display: flex;
       align-items: flex-start;
       gap: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 12px;
+      padding: 4px 0;
       line-height: 1.5;
-      padding: 3px 0;
     }
 
-    .step-status-icon {
+    .step-icon {
       color: var(--pass);
-      font-weight: bold;
+      font-weight: 700;
+      flex-shrink: 0;
     }
 
-    .step-keyword {
+    .step-kw {
       color: #60a5fa;
       font-weight: 700;
-      min-width: 48px;
+      min-width: 50px;
+      flex-shrink: 0;
     }
 
-    .step-text {
+    .step-txt {
       color: #cbd5e1;
+      word-break: break-word;
     }
 
     /* SQLite Database View */
-    .db-view {
+    .db-panel {
       display: none;
-      flex: 1;
-      overflow: auto;
-      padding: 20px 24px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow-x: auto;
     }
 
     .db-table {
       width: 100%;
       border-collapse: collapse;
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
       font-size: 12.5px;
     }
 
     .db-table th {
-      background: #181c23;
+      background: #151922;
       color: var(--text-muted);
       text-align: left;
-      padding: 10px 12px;
+      padding: 12px 14px;
       border-bottom: 1px solid var(--border);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 11.5px;
+      white-space: nowrap;
     }
 
     .db-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid rgba(52, 59, 74, 0.6);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(48, 56, 71, 0.65);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      background: var(--bg-surface);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+
+    @media (max-width: 820px) {
+      .topbar { padding: 12px 16px; }
+      .container { padding: 16px; }
+      .feature-header { flex-direction: column; align-items: flex-start; }
+      .scenario-row { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
@@ -670,256 +749,231 @@ function generateFeatureScenarioReport() {
     </div>
 
     <div class="summary-strip">
-      <div class="stat-pill">
-        <span>Features:</span>
-        <strong>${totalFeatures}</strong>
-      </div>
-      <div class="stat-pill">
-        <span>Total Scenarios:</span>
-        <strong>${totalScenarios}</strong>
-      </div>
-      <div class="stat-pill stat-pass">
-        <span>✓ Passed:</span>
-        <strong>${totalPassed}</strong>
-      </div>
-      <div class="stat-pill ${totalFailed > 0 ? 'stat-fail' : ''}">
-        <span>✕ Failed:</span>
-        <strong>${totalFailed}</strong>
-      </div>
-      <div class="stat-pill stat-pass">
-        <span>Pass Rate:</span>
-        <strong>${passRate}%</strong>
-      </div>
-
-      <div class="mode-tabs">
-        <button class="mode-tab active" onclick="switchMode('features', this)">Features &amp; Scenarios (${totalScenarios})</button>
-        <button class="mode-tab" onclick="switchMode('database', this)">SQLite test_users DB (${dbUsers.length})</button>
-      </div>
+      <div class="stat-pill">Features: <strong>${totalFeatures}</strong></div>
+      <div class="stat-pill">Total Scenarios: <strong>${totalScenarios}</strong></div>
+      <div class="stat-pill stat-pass">✓ Passed: <strong>${totalPassed}</strong></div>
+      <div class="stat-pill ${totalFailed > 0 ? 'stat-fail' : ''}">✕ Failed: <strong>${totalFailed}</strong></div>
+      <div class="stat-pill stat-pass">Pass Rate: <strong>${passRate}%</strong></div>
     </div>
   </header>
 
-  <!-- MAIN SPLIT WORKSPACE: LEFT FEATURE LIST + RIGHT SCENARIO LIST -->
-  <main id="featuresWorkspace" class="workspace">
-    <aside class="left-pane">
-      <div class="pane-toolbar">
-        <div class="pane-toolbar-header">
-          <span>Regression Features (${totalFeatures})</span>
-          <span>Click a feature to inspect scenarios</span>
+  <main class="container">
+    <div class="controls-bar">
+      <div class="controls-left">
+        <div class="mode-tabs">
+          <button class="mode-tab active" onclick="switchView('features', this)">Features &amp; Scenarios (${totalScenarios})</button>
+          <button class="mode-tab" onclick="switchView('database', this)">SQLite test_users DB (${dbUsers.length})</button>
         </div>
         <input
-          id="featureSearchInput"
+          id="searchInput"
           type="text"
           class="search-box"
-          placeholder="Filter features or scenario names..."
-          oninput="renderFeatureList()"
+          placeholder="Search feature name, scenario ID, or scenario title..."
+          oninput="renderFeatures()"
         />
       </div>
-      <div class="feature-list">
-        <table class="feature-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Feature File</th>
-              <th>Scenarios</th>
-              <th>Pass / Fail</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="featureTableBody"></tbody>
-        </table>
-      </div>
-    </aside>
 
-    <section class="right-pane">
-      <div class="right-header">
-        <div class="selected-feature-info">
-          <h2 id="selectedFeatureTitle">Select a feature</h2>
-          <p id="selectedFeatureDesc"></p>
-        </div>
-        <div class="filter-group">
-          <button class="filter-btn active" onclick="setScenarioFilter('ALL', this)">All</button>
-          <button class="filter-btn" onclick="setScenarioFilter('PASSED', this)">Passed</button>
-          <button class="filter-btn" onclick="setScenarioFilter('FAILED', this)">Failed</button>
-          <button class="filter-btn" onclick="toggleExpandAll()">Expand / Collapse Steps</button>
-        </div>
+      <div id="featureControls" class="controls-right">
+        <button class="btn active" onclick="setStatusFilter('ALL', this)">All</button>
+        <button class="btn" onclick="setStatusFilter('PASSED', this)">Passed</button>
+        <button class="btn" onclick="setStatusFilter('FAILED', this)">Failed</button>
+        <button class="btn" onclick="expandAllFeatures()">Expand All</button>
+        <button class="btn" onclick="collapseAllFeatures()">Collapse All</button>
       </div>
-      <div id="scenariosContainer" class="scenarios-container"></div>
-    </section>
+    </div>
+
+    <!-- FULL-WIDTH EXPANDABLE FEATURES ACCORDION -->
+    <div id="featuresView" class="features-stack"></div>
+
+    <!-- SQLITE TEST_USERS DB VIEW -->
+    <div id="databaseView" class="db-panel">
+      <table class="db-table">
+        <thead>
+          <tr>
+            <th>id</th>
+            <th>email</th>
+            <th>first_name</th>
+            <th>last_name</th>
+            <th>has_pet (count)</th>
+            <th>pet_name</th>
+            <th>pet_species</th>
+            <th>subscription_tier</th>
+            <th>account_status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${dbUsers
+            .map(
+              u => `<tr>
+            <td>${u.id}</td>
+            <td>${u.email}</td>
+            <td>${u.firstName}</td>
+            <td>${u.lastName}</td>
+            <td><strong>${u.petCount}</strong></td>
+            <td>${u.petName || 'NULL'}</td>
+            <td>${u.petSpecies || 'NULL'}</td>
+            <td><span class="badge ${u.subscriptionTier === 'companion' ? 'badge-pass' : ''}">${u.subscriptionTier}</span></td>
+            <td><span class="badge badge-pass">${u.accountStatus}</span></td>
+          </tr>`
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </div>
   </main>
-
-  <!-- SQLITE TEST_USERS TABLE VIEW -->
-  <section id="databaseWorkspace" class="db-view">
-    <table class="db-table">
-      <thead>
-        <tr>
-          <th>id</th>
-          <th>email</th>
-          <th>first_name</th>
-          <th>last_name</th>
-          <th>has_pet (count)</th>
-          <th>pet_name</th>
-          <th>pet_species</th>
-          <th>subscription_tier</th>
-          <th>account_status</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${dbUsers
-          .map(
-            u => `<tr>
-          <td>${u.id}</td>
-          <td>${u.email}</td>
-          <td>${u.firstName}</td>
-          <td>${u.lastName}</td>
-          <td><strong>${u.petCount}</strong></td>
-          <td>${u.petName || 'NULL'}</td>
-          <td>${u.petSpecies || 'NULL'}</td>
-          <td><span class="badge ${u.subscriptionTier === 'companion' ? 'badge-pass' : ''}">${u.subscriptionTier}</span></td>
-          <td><span class="badge badge-pass">${u.accountStatus}</span></td>
-        </tr>`
-          )
-          .join('')}
-      </tbody>
-    </table>
-  </section>
 
   <script>
     const FEATURES_DATA = ${JSON.stringify(features)};
-    let selectedFeatureIndex = 0;
+    const expandedFeatureKeys = new Set(); // Starts collapsed so all 11 features are cleanly visible in full width
     let statusFilter = 'ALL';
-    let expandAllSteps = true;
 
-    function switchMode(mode, btn) {
-      document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+    function switchView(view, btn) {
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('featuresWorkspace').style.display = mode === 'features' ? 'grid' : 'none';
-      document.getElementById('databaseWorkspace').style.display = mode === 'database' ? 'block' : 'none';
+      const isFeatures = view === 'features';
+      document.getElementById('featuresView').style.display = isFeatures ? 'flex' : 'none';
+      document.getElementById('featureControls').style.display = isFeatures ? 'flex' : 'none';
+      document.getElementById('searchInput').style.display = isFeatures ? 'block' : 'none';
+      document.getElementById('databaseView').style.display = isFeatures ? 'none' : 'block';
     }
 
-    function selectFeature(index) {
-      selectedFeatureIndex = index;
-      renderFeatureList();
-      renderScenariosForSelectedFeature();
-    }
-
-    function setScenarioFilter(filter, btn) {
+    function setStatusFilter(filter, btn) {
       statusFilter = filter;
-      document.querySelectorAll('.filter-btn').forEach((b, idx) => {
+      document.querySelectorAll('#featureControls .btn').forEach((b, idx) => {
         if (idx < 3) b.classList.remove('active');
       });
       btn.classList.add('active');
-      renderScenariosForSelectedFeature();
+      renderFeatures();
     }
 
-    function toggleExpandAll() {
-      expandAllSteps = !expandAllSteps;
-      document.querySelectorAll('.scenario-card').forEach(card => {
-        card.classList.toggle('expanded', expandAllSteps);
-      });
+    function toggleFeature(moduleKey) {
+      if (expandedFeatureKeys.has(moduleKey)) {
+        expandedFeatureKeys.delete(moduleKey);
+      } else {
+        expandedFeatureKeys.add(moduleKey);
+      }
+      renderFeatures();
     }
 
-    function renderFeatureList() {
-      const query = (document.getElementById('featureSearchInput').value || '').toLowerCase();
-      const tbody = document.getElementById('featureTableBody');
-      tbody.innerHTML = '';
+    function expandAllFeatures() {
+      FEATURES_DATA.forEach(f => expandedFeatureKeys.add(f.moduleKey));
+      renderFeatures();
+    }
+
+    function collapseAllFeatures() {
+      expandedFeatureKeys.clear();
+      renderFeatures();
+    }
+
+    function renderFeatures() {
+      const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      const container = document.getElementById('featuresView');
+      container.innerHTML = '';
+
+      let renderedCount = 0;
 
       FEATURES_DATA.forEach((feat, idx) => {
-        const matchesFeature =
+        const featureMatchesQuery =
+          !query ||
           feat.fileName.toLowerCase().includes(query) ||
-          feat.title.toLowerCase().includes(query) ||
-          feat.scenarios.some(s => s.fullTitle.toLowerCase().includes(query));
+          feat.title.toLowerCase().includes(query);
 
-        if (!matchesFeature) return;
+        const matchingScenarios = feat.scenarios.filter(sc => {
+          const matchesStatus = statusFilter === 'ALL' || sc.status === statusFilter;
+          const matchesText =
+            featureMatchesQuery ||
+            sc.id.toLowerCase().includes(query) ||
+            sc.fullTitle.toLowerCase().includes(query);
+          return matchesStatus && matchesText;
+        });
 
-        const tr = document.createElement('tr');
-        tr.className = 'feature-row' + (idx === selectedFeatureIndex ? ' selected' : '');
-        tr.onclick = () => selectFeature(idx);
+        if (matchingScenarios.length === 0) return;
+
+        renderedCount++;
+        const isExpanded = expandedFeatureKeys.has(feat.moduleKey) || (query.length > 0);
+        const card = document.createElement('div');
+        card.className = 'feature-card' + (isExpanded ? ' expanded' : '');
 
         const statusBadge =
           feat.failedCount > 0
             ? '<span class="badge badge-fail">✕ FAIL</span>'
             : '<span class="badge badge-pass">✓ PASS</span>';
 
-        tr.innerHTML = \`
-          <td>\${idx + 1}</td>
-          <td>
-            <span class="feature-file-name">\${feat.fileName}</span>
-            <span class="feature-sub-title">\${feat.title}</span>
-          </td>
-          <td><strong>\${feat.totalScenarios}</strong></td>
-          <td>
-            <span style="color:#34d399;font-weight:700;">\${feat.passedCount}</span> /
-            <span style="color:\${feat.failedCount > 0 ? '#f87171' : '#94a3b8'};font-weight:700;">\${feat.failedCount}</span>
-          </td>
-          <td>\${statusBadge}</td>
-        \`;
-        tbody.appendChild(tr);
-      });
-    }
+        const scenariosHtml = matchingScenarios
+          .map(sc => {
+            const scBadge =
+              sc.status === 'FAILED'
+                ? '<span class="badge badge-fail">✕ FAILED</span>'
+                : '<span class="badge badge-pass">✓ PASSED</span>';
 
-    function renderScenariosForSelectedFeature() {
-      const feat = FEATURES_DATA[selectedFeatureIndex];
-      if (!feat) return;
+            const stepsHtml = sc.steps
+              .map(
+                st => \`
+              <div class="step-line">
+                <span class="step-icon">\${sc.status === 'FAILED' ? '•' : '✓'}</span>
+                <span class="step-kw">\${st.keyword}</span>
+                <span class="step-txt">\${st.text}</span>
+              </div>\`
+              )
+              .join('');
 
-      document.getElementById('selectedFeatureTitle').innerHTML = \`
-        <span>\${feat.fileName}</span>
-        <span class="badge \${feat.failedCount > 0 ? 'badge-fail' : 'badge-pass'}">
-          \${feat.passedCount} / \${feat.totalScenarios} Passed
-        </span>
-      \`;
-      document.getElementById('selectedFeatureDesc').textContent = feat.title + ' — ' + feat.description;
-
-      const container = document.getElementById('scenariosContainer');
-      container.innerHTML = '';
-
-      const filtered = feat.scenarios.filter(s => {
-        if (statusFilter === 'ALL') return true;
-        return s.status === statusFilter;
-      });
-
-      filtered.forEach(sc => {
-        const card = document.createElement('div');
-        card.className = 'scenario-card' + (expandAllSteps ? ' expanded' : '');
-
-        const statusBadge =
-          sc.status === 'FAILED'
-            ? '<span class="badge badge-fail">✕ FAILED</span>'
-            : '<span class="badge badge-pass">✓ PASSED</span>';
-
-        const stepsHtml = sc.steps
-          .map(
-            st => \`
-          <div class="step-row">
-            <span class="step-status-icon">\${sc.status === 'FAILED' ? '•' : '✓'}</span>
-            <span class="step-keyword">\${st.keyword}</span>
-            <span class="step-text">\${st.text}</span>
-          </div>
-        \`
-          )
+            return \`
+              <div class="scenario-item">
+                <div class="scenario-row" onclick="this.parentElement.classList.toggle('steps-open')">
+                  <div class="scenario-left">
+                    <span class="scenario-id">\${sc.id}</span>
+                    <span class="scenario-name">\${sc.name}</span>
+                  </div>
+                  <div class="scenario-right">
+                    <span class="steps-toggle-hint">Steps (\${sc.steps.length}) ▾</span>
+                    <span class="duration-tag">\${sc.durationSec}</span>
+                    \${scBadge}
+                  </div>
+                </div>
+                <div class="scenario-steps">
+                  \${stepsHtml}
+                </div>
+              </div>\`;
+          })
           .join('');
 
         card.innerHTML = \`
-          <div class="scenario-header" onclick="this.parentElement.classList.toggle('expanded')">
-            <div class="scenario-title-wrap">
-              <span class="scenario-id">\${sc.id}</span>
-              <span class="scenario-name">\${sc.name}</span>
+          <div class="feature-header" onclick="toggleFeature('\${feat.moduleKey}')">
+            <div class="feature-left">
+              <div class="feature-index">\${idx + 1}</div>
+              <div class="feature-titles">
+                <div class="feature-filename">\${feat.fileName}</div>
+                <div class="feature-subtitle">\${feat.title}</div>
+              </div>
             </div>
-            <div class="scenario-meta">
-              <span class="duration-tag">\${sc.durationSec}</span>
+            <div class="feature-metrics">
+              <span class="metric-chip">Scenarios: <strong>\${feat.totalScenarios}</strong></span>
+              <span class="metric-chip">Passed: <strong style="color:#34d399;">\${feat.passedCount}</strong></span>
+              <span class="metric-chip">Failed: <strong style="color:\${feat.failedCount > 0 ? '#f87171' : '#94a3b8'};">\${feat.failedCount}</strong></span>
               \${statusBadge}
+              <span class="expand-pill">
+                <span class="chevron">▶</span>
+                <span>\${isExpanded ? 'Collapse' : 'Expand'}</span>
+              </span>
             </div>
           </div>
-          <div class="scenario-steps">
-            \${stepsHtml}
+          <div class="feature-body">
+            <div class="feature-description">\${feat.description}</div>
+            <div class="scenarios-list">
+              \${scenariosHtml}
+            </div>
           </div>
         \`;
+
         container.appendChild(card);
       });
+
+      if (renderedCount === 0) {
+        container.innerHTML = '<div class="empty-state">No features or scenarios match the current filter.</div>';
+      }
     }
 
-    // Initial render
-    renderFeatureList();
-    renderScenariosForSelectedFeature();
+    renderFeatures();
   </script>
 </body>
 </html>`;
@@ -930,7 +984,7 @@ function generateFeatureScenarioReport() {
   fs.writeFileSync(path.join(JENKINS_REPORT_DIR, 'index.html'), html, 'utf8');
 
   console.log(
-    `✅ Generated Master-Detail Feature & Scenario Report (${totalFeatures} features, ${totalScenarios} scenarios)`
+    `✅ Generated Full-Width Expandable Feature Report (${totalFeatures} features, ${totalScenarios} scenarios)`
   );
   console.log(`   - Local Report:   ${path.join(REPORT_DIR, 'index.html')}`);
   console.log(`   - GitHub Pages:   ${path.join(DOCS_DIR, 'index.html')}`);
